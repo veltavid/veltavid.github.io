@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>MIT-6.828-JOS-lab1实验笔记 | velta&#39;s blog</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="操作系统">
+    <meta name="description" content="1. 启动过程 BIOS BIOS由qemu模拟，它会初始化中断描述符表，查找并启动设备，当BIOS找到可启动的磁盘后，它会将磁盘中位于第一个扇区的bootloader装载到内存中，其装载地址是固定的，随后控制权被移交给bootloader。  bootloader bootloader源码在boot文件夹下。bootloader在启动时会被BIOS装载到物理地址0x7c00，它所做的事有：  开">
+<meta name="keywords" content="操作系统">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MIT-6.828-JOS-lab1实验笔记">
+<meta property="og:url" content="http://veltavid.github.io/2021/08/17/MIT-6-828-JOS-lab1%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/index.html">
+<meta property="og:site_name" content="velta&#39;s blog">
+<meta property="og:description" content="1. 启动过程 BIOS BIOS由qemu模拟，它会初始化中断描述符表，查找并启动设备，当BIOS找到可启动的磁盘后，它会将磁盘中位于第一个扇区的bootloader装载到内存中，其装载地址是固定的，随后控制权被移交给bootloader。  bootloader bootloader源码在boot文件夹下。bootloader在启动时会被BIOS装载到物理地址0x7c00，它所做的事有：  开">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://i.loli.net/2021/08/16/DpRIgk3vwmHhbUT.png">
+<meta property="og:image" content="https://i.loli.net/2021/08/16/6tXMAPHv1YBc2rQ.png">
+<meta property="og:image" content="https://i.loli.net/2021/06/03/afCcvwiOWLnD9Vo.png">
+<meta property="og:updated_time" content="2021-08-17T08:24:43.303Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/08/16/DpRIgk3vwmHhbUT.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="velta&#39;s blog" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+</head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" target="_blank" rel="noopener" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.jpg">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">velta</h5>
+          <a href="mailto:1020217451@qq.com" target="_blank" rel="noopener" title="1020217451@qq.com" class="mail">1020217451@qq.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                Archives
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                Tags
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                Categories
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/veltavid" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" target="_blank" rel="noopener" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">MIT-6.828-JOS-lab1实验笔记</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" target="_blank" rel="noopener" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" target="_blank" rel="noopener" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" target="_blank" rel="noopener" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">MIT-6.828-JOS-lab1实验笔记</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2021-08-17T01:09:38.000Z" itemprop="datePublished" class="page-time">
+  2021-08-17
+</time>
+
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-6"><a class="post-toc-link" href="#1-启动过程"><span class="post-toc-number">1.</span> <span class="post-toc-text">1. 启动过程</span></a></li><li class="post-toc-item post-toc-level-6"><a class="post-toc-link" href="#2-code"><span class="post-toc-number">2.</span> <span class="post-toc-text">2. code</span></a></li><li class="post-toc-item post-toc-level-6"><a class="post-toc-link" href="#3-question-amp-code"><span class="post-toc-number">3.</span> <span class="post-toc-text">3. question &amp; code</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-MIT-6-828-JOS-lab1实验笔记"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">MIT-6.828-JOS-lab1实验笔记</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2021-08-17 09:09:38" datetime="2021-08-17T01:09:38.000Z"  itemprop="datePublished">2021-08-17</time>
+
+            
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <h6 id="1-启动过程"><a href="#1-启动过程" class="headerlink" title="1. 启动过程"></a>1. 启动过程</h6><ul>
+<li><p>BIOS</p>
+<p>BIOS由qemu模拟，它会初始化中断描述符表，查找并启动设备，当BIOS找到可启动的磁盘后，它会将磁盘中位于第一个扇区的bootloader装载到内存中，其装载地址是固定的，随后控制权被移交给bootloader。</p>
+</li>
+<li><p>bootloader</p>
+<p>bootloader源码在boot文件夹下。bootloader在启动时会被BIOS装载到物理地址0x7c00，它所做的事有：</p>
+<ul>
+<li><p>开启A20地址线，防止高位地址被清零。</p>
+</li>
+<li><p>设置好GDTR寄存器，并将模式从实模式切换到保护模式。</p>
+</li>
+<li><p>使用ljmp设置cs为内核代码段选择子，再设置各个段寄存器为内核数据段选择子。</p>
+</li>
+<li><p>使用I/O汇编指令读取磁盘上第二个扇区中存储的内核文件。</p>
+</li>
+<li><p>通过内核文件的header信息来装载内核文件的不同segement。</p>
+</li>
+<li><p>最后跳转到内核的入口点，将控制权移交给内核。</p>
+</li>
+</ul>
+</li>
+<li><p>实模式与保护模式</p>
+<ul>
+<li><p>实模式</p>
+<p>从上述启动过程中我们能够看出CPU在刚启动时是处于实模式的，所谓实模式就是32位CPU的16位运行模式，它的存在意义是为了兼容过去的16位CPU，因此在实模式下CPU会尽量模拟成与过去16位CPU相同的样子。主要的特点有：</p>
+<ul>
+<li><p>寄存器都只使用低16位。</p>
+</li>
+<li><p>程序中使用的地址都是真实的物理地址。</p>
+</li>
+<li><p>寻址空间大小为1MB，如果段基址加偏移的结果超出了这个范围就会回卷。</p>
+</li>
+<li><p>没有内核态与用户态之分。</p>
+</li>
+</ul>
+<p>实模式下A20是关闭的，任何地址高于20位的部分会被清零，因此bootloader将CPU从实模式转换到保护模式前才需要先将A20设置为1。</p>
+</li>
+<li><p>保护模式</p>
+<p>保护模式下CPU中的各个寄存器都能使用32位，段寄存器中程序可控的部分只有低16位，这被称为段选择子，它的结构如下图所示</p>
+<p><img src="https://i.loli.net/2021/08/16/DpRIgk3vwmHhbUT.png" alt="image-20210816163849565"></p>
+<p>使用段选择子中的索引可以在GDT中找到对应段描述符，从段描述符中获取段基址，段属性，段限长字段存入段寄存器的高80位。之后计算地址时使用段基址加上段内偏移计算出线性地址，linux段描述符的段基址都为0，所以计算出的线性地址与偏移地址相同。</p>
+</li>
+</ul>
+</li>
+<li><p>kernel</p>
+<p>从bootmain函数中可以看出内核会被装载到从0x10000开始的物理内存，但为什么说kernel被加载的物理地址是0x100000呢。查看一下kernel的头部结构就能够解答这个疑问了。</p>
+<p><img src="https://i.loli.net/2021/08/16/6tXMAPHv1YBc2rQ.png" alt="kernel_pa"></p>
+<p>从图上可以看出kernel共有3个program header，第一个program header的装载物理地址为0x100000。</p>
+<p>通常为了区分user内存与kernel内存，kernel应该被放到高地址处。在JOS中kernel的基地址为0xf0100000，但物理内存并没有这么多，实际上这块只是虚拟内存，它是由0x100000映射过去的，这种映射CPU已经提供了硬件支持，我们只需要为CPU提供一张页表即可实现，本实验中已经提供给我们了一张静态的页表，因此我们暂时不需要考虑物理页的分配问题——这是下一个实验的工作。</p>
+</li>
+</ul>
+<h6 id="2-code"><a href="#2-code" class="headerlink" title="2. code"></a>2. code</h6><ul>
+<li><p>cprintf补全</p>
+<p>程序缺少%o格式化符的实现，仿照%d补全如下，将base改为8即可。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">case</span> <span class="string">'o'</span>:</span><br><span class="line">	num = getint(&amp;ap, lflag);</span><br><span class="line">	<span class="keyword">if</span> ((<span class="keyword">long</span> <span class="keyword">long</span>) num &lt; <span class="number">0</span>) &#123;</span><br><span class="line">		putch(<span class="string">'-'</span>, putdat);</span><br><span class="line">		num = -(<span class="keyword">long</span> <span class="keyword">long</span>) num;</span><br><span class="line">	&#125;</span><br><span class="line">	base = <span class="number">8</span>;</span><br><span class="line">	<span class="keyword">goto</span> number;</span><br></pre></td></tr></table></figure></li>
+<li><p>backtrace实现</p>
+<ul>
+<li><p>打印ebp，eip及参数</p>
+<p>随意定义一个变量，根据其地址算出ebp及存储返回地址与参数的栈上地址，按格式循环打印出来，根据entry.S可知当ebp为0时即可停止。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span></span><br><span class="line">mon_backtrace(<span class="keyword">int</span> argc, <span class="keyword">char</span> **argv, struct Trapframe *tf)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">int</span> temp=<span class="number">0</span>;</span><br><span class="line">	<span class="keyword">uint32_t</span> ebp,eip,arg1,arg2,arg3,arg4,arg5;</span><br><span class="line">	ebp=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x1c</span>;</span><br><span class="line">	eip=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x20</span>;</span><br><span class="line">	arg1=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x24</span>;</span><br><span class="line">	arg2=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x28</span>;</span><br><span class="line">	arg3=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x2c</span>;</span><br><span class="line">	arg4=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x30</span>;</span><br><span class="line">	arg5=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x34</span>;</span><br><span class="line">	cprintf(<span class="string">"Stack backtrace:\n"</span>);</span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		cprintf(<span class="string">"  ebp %08x  eip %08x  args %08x %08x %08x %08x %08x\n"</span>,ebp,get32(eip),get32(arg1),get32(arg2),get32(arg3),\</span><br><span class="line">		get32(arg4),get32(arg5));</span><br><span class="line">		<span class="keyword">if</span>(!get32(ebp))</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">		ebp=(<span class="keyword">uint32_t</span>)get32(ebp);</span><br><span class="line">		eip=ebp+<span class="number">4</span>;</span><br><span class="line">		arg1=ebp+<span class="number">8</span>;</span><br><span class="line">		arg2=ebp+<span class="number">0xc</span>;</span><br><span class="line">		arg3=ebp+<span class="number">0x10</span>;</span><br><span class="line">		arg4=ebp+<span class="number">0x14</span>;</span><br><span class="line">		arg5=ebp+<span class="number">0x18</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+<li><p>打印debug信息</p>
+<p>通过debuginfo_eip函数可以获得地址所属于哪个函数，以及源文件名。但debuginfo_eip中获取源文件行数需要我们自己实现。查看stabs文档可以知道N_SLINE类型的stab中存储了我们需要的行数，在n_desc域中。</p>
+<p><img src="https://i.loli.net/2021/06/03/afCcvwiOWLnD9Vo.png" alt="image-20210603140127447"></p>
+<p>因此使用stab_binsearch找到类型为N_SLINE的stab，然后将它的n_desc域赋值给info的eip_line域即可。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">stab_binsearch(stabs, &amp;lfun, &amp;rfun, N_SLINE, addr);</span><br><span class="line">info-&gt;eip_line=stabs[lfun].n_desc;</span><br></pre></td></tr></table></figure></li>
+<li><p>最终版backtrace</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span></span><br><span class="line">mon_backtrace(<span class="keyword">int</span> argc, <span class="keyword">char</span> **argv, struct Trapframe *tf)</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">int</span> temp=<span class="number">0</span>;</span><br><span class="line">	<span class="keyword">uint32_t</span> ebp,eip,arg1,arg2,arg3,arg4,arg5;</span><br><span class="line">	<span class="class"><span class="keyword">struct</span> <span class="title">Eipdebuginfo</span> <span class="title">info</span>;</span></span><br><span class="line">	<span class="keyword">char</span> func_name[<span class="number">64</span>];</span><br><span class="line">	<span class="keyword">int</span> func_line;</span><br><span class="line">	ebp=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x1c</span>;</span><br><span class="line">	eip=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x20</span>;</span><br><span class="line">	arg1=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x24</span>;</span><br><span class="line">	arg2=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x28</span>;</span><br><span class="line">	arg3=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x2c</span>;</span><br><span class="line">	arg4=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x30</span>;</span><br><span class="line">	arg5=((<span class="keyword">uint32_t</span>)&amp;temp)+<span class="number">0x34</span>;</span><br><span class="line">	cprintf(<span class="string">"Stack backtrace:\n"</span>);</span><br><span class="line">	<span class="keyword">while</span>(<span class="number">1</span>)</span><br><span class="line">	&#123;</span><br><span class="line">		debuginfo_eip((<span class="keyword">uintptr_t</span>)get32(eip), &amp;info);</span><br><span class="line">		func_line=(<span class="keyword">uint32_t</span>)get32(eip)-(<span class="keyword">uint32_t</span>)info.eip_fn_addr+<span class="number">1</span>;</span><br><span class="line">		<span class="built_in">strncpy</span>(func_name,info.eip_fn_name,info.eip_fn_namelen);</span><br><span class="line">		*(func_name+info.eip_fn_namelen)=<span class="string">'\0'</span>;</span><br><span class="line"></span><br><span class="line">		cprintf(<span class="string">"  ebp %08x  eip %08x  args %08x %08x %08x %08x %08x\n"</span>,ebp,get32(eip),get32(arg1),get32(arg2),get32(arg3),\</span><br><span class="line">		get32(arg4),get32(arg5));</span><br><span class="line">		cprintf(<span class="string">"         %s:%d: %s+%d\n"</span>,info.eip_file,info.eip_line,func_name,func_line);</span><br><span class="line">		<span class="keyword">if</span>(!get32(ebp))</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">		ebp=(<span class="keyword">uint32_t</span>)get32(ebp);</span><br><span class="line">		eip=ebp+<span class="number">4</span>;</span><br><span class="line">		arg1=ebp+<span class="number">8</span>;</span><br><span class="line">		arg2=ebp+<span class="number">0xc</span>;</span><br><span class="line">		arg3=ebp+<span class="number">0x10</span>;</span><br><span class="line">		arg4=ebp+<span class="number">0x14</span>;</span><br><span class="line">		arg5=ebp+<span class="number">0x18</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+</li>
+</ul>
+<h6 id="3-question-amp-code"><a href="#3-question-amp-code" class="headerlink" title="3. question &amp; code"></a>3. question &amp; code</h6><p>关于这部分的内容欢迎dalao斧正。</p>
+<ul>
+<li><p>At what point does the processor start executing 32-bit code? What exactly causes the switch from 16- to 32-bit mode?</p>
+<p>在ljmp后。ljmp会根据段选择子将GDT中对应的段描述符存储到cs段寄存器中，从而改变段基址。由于段描述符中的段基址为0，所以实际上是进入了平坦模式，直接根据偏移量跳转到了32位汇编指令区域。</p>
+</li>
+<li><p>What is the <em>last</em> instruction of the boot loader executed, and what is the <em>first</em> instruction of the kernel it just loaded?</p>
+<p>最后一条指令是call dword ptr ds:10018h，0x10000是装载kernel头部信息的地方，偏移0x18处存储着kernel的入口点。kernel执行的第一条指令是mov large word ptr ds:472h, 1234h。</p>
+</li>
+<li><p><em>Where</em> is the first instruction of the kernel?</p>
+<p>0x10000c。</p>
+</li>
+<li><p>How does the boot loader decide how many sectors it must read in order to fetch the entire kernel from disk? Where does it find this information?</p>
+<p>每个segment中包含的sector数目由program header结构体中的p_memsz字段决定，只需要用p_memsz除以单个sector的大小就可以知道要读取多少个sector。</p>
+</li>
+<li><p>Reset the machine (exit QEMU/GDB and start them again). Examine the 8 words of memory at 0x00100000 at the point the BIOS enters the boot loader, and then again at the point the boot loader enters the kernel. Why are they different? What is there at the second breakpoint? (You do not really need to use QEMU to answer this question. Just think.)</p>
+<p>因为BIOS将控制权交给bootloader时内核还未加载，所以在0x100000处的数据应当为0。而bootloader将控制权移交给内核时，已经在0x100000处加载了内核，所以此时该处存有内核数据。</p>
+</li>
+<li><p>Explain the interface between <code>printf.c</code> and <code>console.c</code>. Specifically, what function does <code>console.c</code> export? How is this function used by <code>printf.c</code>?</p>
+<p>printf.c调用console.c提供的cputchar函数实现单个字符的输出。console.c导出的函数为cputchar。printf.c将调用cputchar的putch作为打印单个字符的功能函数传给了printfmt.c中的vprintfmt。</p>
+</li>
+<li><p>Explain the following from console.c</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">1</span>      <span class="keyword">if</span> (crt_pos &gt;= CRT_SIZE) &#123;</span><br><span class="line"><span class="number">2</span>              <span class="keyword">int</span> i;</span><br><span class="line"><span class="number">3</span>              memmove(crt_buf, crt_buf + CRT_COLS, (CRT_SIZE - CRT_COLS) * <span class="keyword">sizeof</span>(<span class="keyword">uint16_t</span>));</span><br><span class="line"><span class="number">4</span>              <span class="keyword">for</span> (i = CRT_SIZE - CRT_COLS; i &lt; CRT_SIZE; i++)</span><br><span class="line"><span class="number">5</span>                      crt_buf[i] = <span class="number">0x0700</span> | <span class="string">' '</span>;</span><br><span class="line"><span class="number">6</span>              crt_pos -= CRT_COLS;</span><br><span class="line"><span class="number">7</span>      &#125;</span><br></pre></td></tr></table></figure>
+
+<p>当窗口中显示的字符已经满了但还需要打印新的字符时，会整体向上移一行，空出最下面一行来打印新的字符。</p>
+</li>
+<li><p>For the following questions you might wish to consult the notes for Lecture 2. These notes cover GCC’s calling convention on the x86.</p>
+<p>Trace the execution of the following code step-by-step:</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> x = <span class="number">1</span>, y = <span class="number">3</span>, z = <span class="number">4</span>;</span><br><span class="line">cprintf(<span class="string">"x %d, y %x, z %d\n"</span>, x, y, z);</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li><p>In the call to <code>cprintf()</code>, to what does <code>fmt</code> point? To what does <code>ap</code> point?</p>
+<p>fmt参数指向”x %d, y %x, z %d\n”字符串。ap指向栈上存储的cprintf第二个参数，即1。</p>
+</li>
+<li><p>List (in order of execution) each call to <code>cons_putc</code>, <code>va_arg</code>, and <code>vcprintf</code>. For <code>cons_putc</code>, list its argument as well. For <code>va_arg</code>, list what <code>ap</code> points to before and after the call. For <code>vcprintf</code> list the values of its two arguments.</p>
+<p>vcprintf-&gt;cons_putc-&gt;va_arg。</p>
+<p>在va_arg前ap指向1，va_arg之后ap指向3。</p>
+<p>fmt的值为”x %d, y %x, z %d\n”字符串地址，ap的值为ebp+0xc。</p>
+</li>
+</ul>
+</li>
+<li><p>Run the following code.</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">unsigned</span> <span class="keyword">int</span> i = <span class="number">0x00646c72</span>;</span><br><span class="line">cprintf(<span class="string">"H%x Wo%s"</span>, <span class="number">57616</span>, &amp;i);</span><br></pre></td></tr></table></figure>
+
+<p>What is the output? Explain how this output is arrived at in the step-by-step manner of the previous exercise. <a href="http://web.cs.mun.ca/~michael/c/ascii-table.html" target="_blank" rel="noopener">Here’s an ASCII table</a> that maps bytes to characters.</p>
+<p>The output depends on that fact that the x86 is little-endian. If the x86 were instead big-endian what would you set <code>i</code> to in order to yield the same output? Would you need to change <code>57616</code> to a different value?</p>
+<p>输出是”HE110 World”。H输出，57616以16进制输出是E110，” Wo”也是直接输出的，i被当作字符串输出，由于x86是小端序，因此0x00646c72在内存中实际上是72 6c 64 00这样存储的，即rld\x00。</p>
+<p>若为大端序则i应该等于0x726c6400，而57616不需要改变。</p>
+</li>
+<li><p>In the following code, what is going to be printed after ‘y=’? (note: the answer is not a specific value.) Why does this happen?</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cprintf(<span class="string">"x=%d y=%d"</span>, <span class="number">3</span>);</span><br></pre></td></tr></table></figure>
+
+<p>会将ebp+0xc处的4字节数据当作整数打印出来，因为格式化字符串中有第二个’%’，而用户只传入了一个参数，但va_arg无法判断变参列表的结尾，会把后续并非参数的数据当作参数打印出来。这也被称为格式化字符串漏洞。</p>
+</li>
+<li><p>Let’s say that GCC changed its calling convention so that it pushed arguments on the stack in declaration order, so that the last argument is pushed last. How would you have to change <code>cprintf</code> or its interface so that it would still be possible to pass it a variable number of arguments?</p>
+<p>vprintfmt中反向遍历格式化字符串，将格式化输出的中间结果暂存在一个足够大的字符数组中，当格式化字符串到了它的起始位置时就输出这个中间结果。</p>
+</li>
+<li><p><a href="https://github.com/veltavid/mit-6.828-jos-study/tree/lab1" target="_blank" rel="noopener">https://github.com/veltavid/mit-6.828-jos-study/tree/lab1</a></p>
+</li>
+</ul>
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2021-08-17T08:24:43.303Z" itemprop="dateUpdated">2021-08-17 16:24:43</time>
+</span><br>
+
+
+        
+    </div>
+    
+    <footer>
+        <a href="http://veltavid.github.io">
+            <img src="/img/avatar.jpg" alt="velta">
+            velta
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" rel="tag">操作系统</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://veltavid.github.io/2021/08/17/MIT-6-828-JOS-lab1%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/&title=《MIT-6.828-JOS-lab1实验笔记》 — velta's blog&pic=http://veltavid.github.io/img/avatar.jpg" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" target="_blank" rel="noopener" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://veltavid.github.io/2021/08/17/MIT-6-828-JOS-lab1%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/&title=《MIT-6.828-JOS-lab1实验笔记》 — velta's blog&source=record velta's binary learning" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://veltavid.github.io/2021/08/17/MIT-6-828-JOS-lab1%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《MIT-6.828-JOS-lab1实验笔记》 — velta's blog&url=http://veltavid.github.io/2021/08/17/MIT-6-828-JOS-lab1%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/&via=http://veltavid.github.io" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://veltavid.github.io/2021/08/17/MIT-6-828-JOS-lab1%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" target="_blank" rel="noopener" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between">
+  
+    <div class="waves-block waves-effect prev">
+      <a href="/2021/08/17/MIT-6-828-JOS-lab2%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/" id="post-prev" class="post-nav-link">
+        <div class="tips"><i class="icon icon-angle-left icon-lg icon-pr"></i> Prev</div>
+        <h4 class="title">MIT-6.828-JOS-lab2实验笔记</h4>
+      </a>
+    </div>
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2021/08/16/2021HWS%E5%88%9D%E8%B5%9Bwriteup/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">2021HWS初赛writeup</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+<section class="comments" id="comments">
+    <div id="disqus_thread"></div>
+    <script>
+    var disqus_shortname = 'true';
+    lazyScripts.push('//' + disqus_shortname + '.disqus.com/embed.js')
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" target="_blank" rel="noopener">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        站点总访客数：<span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        站点总访问量：<span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>velta &copy; 2021</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" target="_blank" rel="noopener" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://veltavid.github.io/2021/08/17/MIT-6-828-JOS-lab1%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/&title=《MIT-6.828-JOS-lab1实验笔记》 — velta's blog&pic=http://veltavid.github.io/img/avatar.jpg" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" target="_blank" rel="noopener" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://veltavid.github.io/2021/08/17/MIT-6-828-JOS-lab1%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/&title=《MIT-6.828-JOS-lab1实验笔记》 — velta's blog&source=record velta's binary learning" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://veltavid.github.io/2021/08/17/MIT-6-828-JOS-lab1%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《MIT-6.828-JOS-lab1实验笔记》 — velta's blog&url=http://veltavid.github.io/2021/08/17/MIT-6-828-JOS-lab1%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/&via=http://veltavid.github.io" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://veltavid.github.io/2021/08/17/MIT-6-828-JOS-lab1%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;" target="_blank" rel="noopener"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://veltavid.github.io/2021/08/17/MIT-6-828-JOS-lab1%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>

