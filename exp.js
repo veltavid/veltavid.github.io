@@ -167,7 +167,7 @@ else
 {
 	t_array[backstore_idx]=i2f(rwxaddr);
 }
-
+console.log("okokok");
 data_view.setFloat64(0, i2f(shellcode[0]), true);
 data_view.setFloat64(8, i2f(shellcode[1]), true);
 data_view.setFloat64(16, i2f(shellcode[2]), true);
