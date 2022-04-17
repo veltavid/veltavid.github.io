@@ -1,6 +1,8 @@
-const loadEntries = async () => {
+loadEntries = ()=>{
 	var req = new XMLHttpRequest();
 	var response=req.open('GET',"http://127.0.0.1:1337/api/entries.php", false)
+	req.send(null);
+	response=req.responseText
 	add_data=(response) => {
 			if (response.status == 200) {
 				response.json().each((k, entry) => {
