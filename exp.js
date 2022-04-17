@@ -1,6 +1,6 @@
 const loadEntries = async () => {
 	var req = new XMLHttpRequest();
-	var response=req.open('GET',"http://127.0.0.1:1337/api/entries", false)
+	var response=req.open('GET',"http://127.0.0.1:1337/api/entries.php", false)
 	add_data=(response) => {
 			if (response.status == 200) {
 				response.json().each((k, entry) => {
